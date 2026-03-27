@@ -2,109 +2,28 @@ import http, { type ServerResponse } from 'node:http';
 import dotenv from 'dotenv';
 
 import { db, createNote, getAllNotes, getNoteById, deleteNoteById } from './db.js';
+import {
+  sendCss,
+  sendHtml,
+  sendMethodNotAllowed,
+  sendNotFound,
+  sendPayloadTooLarge,
+  sendRedirect,
+  sendServerError,
+  sendText,
+  sendUnsupportedMediaType,
+} from './http/response.js';
+import { isFormUrlEncoded, parseFormData, readFormBody, RequestBodyTooLargeError } from './http/request.js';
+import type { Note, NoteId } from './notes/note.types.js';
+import { normalizeNoteInput, validateNoteInput } from './notes/note.validation.js';
+import { escapeHtml } from './views/escape.js';
+import { renderPage } from './views/layout.js';
 
 dotenv.config();
 
 const port = Number(process.env.PORT) || 3000;
-const MAX_REQUEST_BODY_SIZE = 10_000;
-const MAX_TITLE_LENGTH = 200;
-const MAX_NOTE_BODY_LENGTH = 10_000;
 
-function sendText(response: ServerResponse, body: string, status: number = 200) {
-  response.statusCode = status;
-  response.setHeader('Content-Type', 'text/plain; charset=utf-8');
-  response.end(body);
-}
-
-function sendNotFound(response: ServerResponse) {
-  sendText(response, 'Not found', 404);
-}
-
-function sendHtml(response: ServerResponse, html: string, status: number = 200) {
-  response.statusCode = status;
-  response.setHeader('Content-Type', 'text/html; charset=utf-8');
-  response.end(html);
-}
-
-function sendRedirect(response: ServerResponse, location: string, status: number = 303) {
-  response.statusCode = status;
-  response.setHeader('Location', location);
-  response.end();
-}
-
-function sendServerError(response: ServerResponse) {
-  sendText(response, 'Internal Server Error', 500);
-}
-
-async function readFormBody(request: http.IncomingMessage): Promise<string> {
-  return await new Promise((resolve, reject) => {
-    let body = '';
-    let bodySize = 0;
-
-    request.on('data', (chunk: Buffer) => {
-      bodySize += chunk.length;
-
-      if (bodySize > MAX_REQUEST_BODY_SIZE) {
-        reject(new Error('Request body too large'));
-        request.destroy();
-        return;
-      }
-
-      body += chunk.toString();
-    });
-
-    request.on('end', () => {
-      resolve(body);
-    });
-
-    request.on('error', (error) => {
-      reject(error);
-    });
-  });
-}
-
-function parseFormData(rawBody: string): Record<string, string> {
-  const params = new URLSearchParams(rawBody);
-  const fields: Record<string, string> = {};
-
-  for (const [key, value] of params.entries()) {
-    fields[key] = value;
-  }
-
-  return fields;
-}
-
-function isFormUrlEncoded(request: http.IncomingMessage): boolean {
-  const contentTypeHeader = request.headers['content-type'];
-
-  if (typeof contentTypeHeader !== 'string') return false;
-
-  return contentTypeHeader.startsWith('application/x-www-form-urlencoded');
-}
-
-function validateNoteInput(title: string, body: string): string[] {
-  const errors: string[] = [];
-
-  if (title.trim() === '') {
-    errors.push('Title is required');
-  }
-
-  if (title.length > MAX_TITLE_LENGTH) {
-    errors.push('Title must be 200 characters or fewer.');
-  }
-
-  if (body.trim() === '') {
-    errors.push('Body is required');
-  }
-
-  if (body.length > MAX_NOTE_BODY_LENGTH) {
-    errors.push('Body must be 10,000 characters or fewer.');
-  }
-
-  return errors;
-}
-
-function getNoteIdFromPath(pathname: string): string | null {
+function getNoteIdFromPath(pathname: string): NoteId | null {
   const match = /^\/notes\/(\d+)$/.exec(pathname);
 
   if (!match) {
@@ -114,7 +33,7 @@ function getNoteIdFromPath(pathname: string): string | null {
   return match[1] ?? null;
 }
 
-function getDeleteNoteIdFromPath(pathname: string): string | null {
+function getDeleteNoteIdFromPath(pathname: string): NoteId | null {
   const match = /^\/notes\/(\d+)\/delete$/.exec(pathname);
 
   if (!match) {
@@ -124,7 +43,7 @@ function getDeleteNoteIdFromPath(pathname: string): string | null {
   return match[1] ?? null;
 }
 
-function getConfirmDeleteNoteIdFromPath(pathname: string): string | null {
+function getConfirmDeleteNoteIdFromPath(pathname: string): NoteId | null {
   const match = /^\/notes\/(\d+)\/delete\/confirm$/.exec(pathname);
 
   if (!match) {
@@ -134,45 +53,16 @@ function getConfirmDeleteNoteIdFromPath(pathname: string): string | null {
   return match[1] ?? null;
 }
 
-function renderPage(title: string, content: string): string {
-  return `<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <title>${title}</title>
-    <link rel="stylesheet" href="/styles.css">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-  </head>
-  <body>
-    <header>
-      <nav aria-label="Main navigation">
-        <a href="/">Home</a>
-        <a href="/notes">Notes</a>
-        <a href="/notes/new">New note</a>
-      </nav>
-    </header>
-
-    <main>
-      ${content}
-    </main>
-  </body>
-</html>
-`;
+function notePath(id: NoteId): string {
+  return `/notes/${encodeURIComponent(id)}`;
 }
 
-function escapeHtml(value: string): string {
-  return value
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;');
+function noteDeletePath(id: NoteId): string {
+  return `${notePath(id)}/delete`;
 }
 
-function sendCss(response: ServerResponse, css: string, status: number = 200) {
-  response.statusCode = status;
-  response.setHeader('Content-Type', 'text/css; charset=utf-8');
-  response.end(css);
+function noteDeleteConfirmPath(id: NoteId): string {
+  return `${notePath(id)}/delete/confirm`;
 }
 
 function handleStyles(response: ServerResponse) {
@@ -270,10 +160,10 @@ function handleHome(response: ServerResponse) {
 }
 
 
-function handleNotesIndex(response: ServerResponse, notes: Array<{ id: string; title: string; body: string }>) {
+function handleNotesIndex(response: ServerResponse, notes: Note[]) {
   const noteList = notes.map((note) => `
     <li>
-      <a href="/notes/${note.id}">${escapeHtml(note.title)}</a>
+      <a href="${notePath(note.id)}">${escapeHtml(note.title)}</a>
     </li>
   `).join('');
 
@@ -356,13 +246,13 @@ function handleNotFound(response: ServerResponse) {
 
 function handleNoteShow(
   response: ServerResponse,
-  note: { id: string; title: string; body: string }
+  note: Note
 ) {
   const content = `
     <h1>${escapeHtml(note.title)}</h1>
     <pre>${escapeHtml(note.body)}</pre>
 
-    <form method="post" action="/notes/${note.id}/delete">
+    <form method="post" action="${noteDeletePath(note.id)}">
       <button type="submit">Delete note</button>
     </form>
 
@@ -379,7 +269,7 @@ function handleDeleteNote(response: ServerResponse) {
 
 function handleDeleteNoteConfirm(
   response: ServerResponse,
-  note: { id: string; title: string; body: string }
+  note: Note
 ) {
   const content = `
     <h1>Delete note</h1>
@@ -388,11 +278,11 @@ function handleDeleteNoteConfirm(
     <h2>${escapeHtml(note.title)}</h2>
     <pre>${escapeHtml(note.body)}</pre>
 
-    <form method="post" action="/notes/${note.id}/delete/confirm">
+    <form method="post" action="${noteDeleteConfirmPath(note.id)}">
       <button type="submit">Yes, delete this note</button>
     </form>
 
-    <p><a href="/notes/${note.id}">Cancel</a></p>
+    <p><a href="${notePath(note.id)}">Cancel</a></p>
   `;
 
   const html = renderPage('Delete note', content);
@@ -436,9 +326,44 @@ const server = http.createServer(async (request, response) => {
       return;
     }
 
+    if (pathname === '/styles.css' && method !== 'GET') {
+      sendMethodNotAllowed(response, ['GET']);
+      return;
+    }
+
+    if (pathname === '/' && method !== 'GET') {
+      sendMethodNotAllowed(response, ['GET']);
+      return;
+    }
+
+    if (pathname === '/notes' && method !== 'GET' && method !== 'POST') {
+      sendMethodNotAllowed(response, ['GET', 'POST']);
+      return;
+    }
+
+    if (pathname === '/notes/new' && method !== 'GET') {
+      sendMethodNotAllowed(response, ['GET']);
+      return;
+    }
+
     const noteId = getNoteIdFromPath(pathname);
     const deleteNoteId = getDeleteNoteIdFromPath(pathname);
     const confirmDeleteNoteId = getConfirmDeleteNoteIdFromPath(pathname);
+
+    if (confirmDeleteNoteId !== null && method !== 'POST') {
+      sendMethodNotAllowed(response, ['POST']);
+      return;
+    }
+
+    if (deleteNoteId !== null && method !== 'POST') {
+      sendMethodNotAllowed(response, ['POST']);
+      return;
+    }
+
+    if (noteId !== null && method !== 'GET') {
+      sendMethodNotAllowed(response, ['GET']);
+      return;
+    }
 
     if (method === 'GET' && noteId !== null) {
       const note = await getNoteById(noteId);
@@ -478,14 +403,16 @@ const server = http.createServer(async (request, response) => {
 
     if (method === 'POST' && pathname === '/notes') {
       if (!isFormUrlEncoded(request)) {
-        sendText(response, 'Unsupported Media Type', 415);
+        sendUnsupportedMediaType(response);
         return;
       }
 
       const formBody = await readFormBody(request);
       const formFields = parseFormData(formBody);
-      const title = formFields.title ?? '';
-      const body = formFields.body ?? '';
+      const rawTitle = formFields.title ?? '';
+      const rawBody = formFields.body ?? '';
+
+      const { title, body } = normalizeNoteInput(rawTitle, rawBody);
 
       const errors = validateNoteInput(title, body);
       if (errors.length > 0) {
@@ -494,7 +421,7 @@ const server = http.createServer(async (request, response) => {
         return;
       }
 
-      const newNote = await createNote(title.trim(), body.trim());
+      const newNote = await createNote(title, body);
       console.log('created note:', newNote);
 
       handleCreateNote(response);
@@ -504,6 +431,11 @@ const server = http.createServer(async (request, response) => {
     handleNotFound(response);
   } catch (error) {
     console.error('Request handling error:', error);
+
+    if (error instanceof RequestBodyTooLargeError) {
+      sendPayloadTooLarge(response);
+      return;
+    }
 
     if (!response.headersSent) {
       sendServerError(response);
