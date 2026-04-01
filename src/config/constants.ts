@@ -1,1 +1,4 @@
 export const MAX_REQUEST_BODY_SIZE = 10_000;
+
+export const MAX_NOTE_TITLE_LENGTH = 200;
+export const MAX_NOTE_BODY_LENGTH = 10_000;

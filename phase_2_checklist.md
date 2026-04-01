@@ -5,9 +5,9 @@
 - [ x ] Add a shared validated note input type (for example `CreateNoteInput`)
 - [ x ] Remove repeated inline note object types
 - [ x ] Decide on one canonical note ID type
-- [ ] Make boundaries explicit between:
-  - [ ] raw request input
-  - [ ] validated input
+- [ x ] Make boundaries explicit between:
+  - [ x ] raw request input
+  - [ x ] validated input
   - [ x ] DB rows
   - [ x ] escaped output
 - [ x ] Fix note timestamp types to match runtime `pg` behavior (`TIMESTAMPTZ` -> `Date`)
@@ -34,7 +34,7 @@
 - [ x ] Centralize text responses
 - [ x ] Centralize redirects
 - [ x ] Centralize safe error responses
-- [ ] Add reusable helpers for:
+- [ x ] Add reusable helpers for:
   - [ x ] 404 Not Found
   - [ x ] 405 Method Not Allowed
   - [ x ] 413 Payload Too Large
@@ -62,58 +62,62 @@
 
 ## 5. Validation improvements
 - [ x ] Move note validation into `src/notes/note.validation.ts`
-- [ ] Normalize raw note input consistently
+- [ x ] Normalize raw note input consistently
 - [ x ] Decide and apply trimming rules for title and body
 - [ x ] Centralize note field rules
 - [ x ] Validate required fields
 - [ x ] Validate max lengths
-- [ ] Define a typed validated note input shape for successful validation output
-- [ ] Keep raw form input separate from validated note input
-- [ ] Return structured validation results
-- [ ] Keep field-specific error messages in one place
-- [ ] Consider DB-level constraints for note validation rules as defense in depth
+- [ x ] Define a typed validated note input shape for successful validation output
+- [ x ] Keep raw form input separate from validated note input
+- [ x ] Return structured validation results
+- [ x ] Keep field-specific error messages in one place
+- [ x ] Keep field-specific error messages in one place
+- [ x ] Consider DB-level constraints for note validation rules as defense in depth
+- [ x ] Add DB-level CHECK constraints that mirror note validation rules
 
 ---
 
 ## 6. Notes repo cleanup
-- [ ] Move note DB queries into `src/notes/note.repo.ts`
-- [ ] Type DB query results with `NoteRow`
-- [ ] Keep DB-specific shapes inside the repo layer when possible
-- [ ] Consider splitting:
-  - [ ] list row type
-  - [ ] full note row type
-- [ ] Keep pool/config setup separate from note query logic
+- [ x ] Move note DB queries into `src/notes/note.repo.ts`
+- [ x ] Keep note persistence logic out of `db.ts`
+- [ x ] Type DB query results with `NoteRow`
+- [ x ] Keep DB-specific shapes inside the repo layer when possible
+- [ x ] Keep pool/config setup separate from note query logic
+- [ ] Consider splitting list row type and full note row type later
 
 ---
 
 ## 7. Note view extraction
-- [ ] Create `src/notes/note.views.ts`
-- [ ] Move notes index page rendering into the note views module
-- [ ] Move new note form rendering into the note views module
-- [ ] Move note detail page rendering into the note views module
-- [ ] Move delete confirmation page rendering into the note views module
-- [ ] Keep large HTML template strings out of route handlers
+- [ x ] Create `src/notes/note.views.ts`
+- [ x ] Move notes index page rendering into the note views module
+- [ x ] Move new note form rendering into the note views module
+- [ x ] Move note detail page rendering into the note views module
+- [ x ] Move delete confirmation page rendering into the note views module
+- [ x ] Keep large HTML template strings out of route handlers
 
 ---
 
 ## 8. Routing cleanup
-- [ ] Reduce inline route branching in the main server file
-- [ ] Centralize route matching
-- [ ] Centralize path param extraction
-- [ ] Centralize note ID validation
-- [ ] Replace ad hoc note path helpers with a cleaner matcher approach
-- [ ] Add method-not-allowed handling where appropriate
-- [ ] Keep route handlers small and focused
+- [ x ] Move note path builders and route param parsers into a shared note routes/path helper module
+- [ x ] Centralize route matching for note routes
+- [ x ] Reduce repeated pathname + method branching in `server.ts`
+- [ x ] Keep route handlers small and focused
+- [ x ] Keep route-specific method rules close to route definitions
+- [ x ] Keep 404 vs 405 behavior consistent across known routes
+- [ x ] Group route handling by HTTP method where it improves readability without changing 404/405 behavior
+- [ ] Consider extracting note route handling into `src/notes/note.routes.ts`
+- [ x ] Move remaining non-route rendering helpers out of `server.ts` (`handleHome`, `handleStyles`)
 
 ---
 
 ## 9. Security headers
-- [ ] Create a shared security header helper/module
-- [ ] Add `Content-Security-Policy`
-- [ ] Add `X-Content-Type-Options: nosniff`
-- [ ] Add `Referrer-Policy`
-- [ ] Add framing protection
-- [ ] Attach security headers through shared response helpers
+- [ x ] Create a shared security header helper/module
+- [ x ] Add `Content-Security-Policy`
+- [ x ] Add `X-Content-Type-Options: nosniff`
+- [ x ] Add `Referrer-Policy`
+- [ x ] Add framing protection
+- [ x ] Attach security headers through shared response helpers
+- [ x ] Split security headers into common headers vs document-only headers
 
 ### Suggested baseline CSP
 - [ ] `default-src 'none'`
@@ -127,47 +131,52 @@
 ---
 
 ## 10. Error handling and logging
-- [ ] Create shared app error types
-- [ ] Add error categories for:
-  - [ ] bad request
-  - [ ] validation error
-  - [ ] not found
-  - [ ] unsupported media type
-  - [ ] payload too large
-  - [ ] internal error
-- [ ] Centralize error-to-response mapping
-- [ ] Keep user-facing 4xx responses safe and clear
-- [ ] Keep user-facing 5xx responses generic
-- [ ] Log enough detail internally for debugging
-- [ ] Avoid leaking stack traces or DB details to users
-- [ ] Set `process.exitCode = 1` in `init-db.ts` on initialization failure
-- [ ] Consider centralizing request parsing errors into a broader app error module later
+- [ x ] Create shared app error types
+- [ x ] Move request-specific errors into a shared app error module when appropriate
+- [ x ] Centralize error-to-response mapping
+- [ x ] Keep expected client errors as intentional 4xx responses
+- [ x ] Keep unexpected failures as safe generic 500 responses
+- [ x ] Avoid leaking stack traces or DB details to users
+- [ x ] Keep internal logging useful and consistent
+- [ x ] Set `process.exitCode = 1` in `init-db.ts` on initialization failure
+- [ x ] Consider whether to support `HEAD` for safe GET routes later
+- [ ] Support `HEAD` for safe GET routes by reusing GET route handling and omitting response bodies
+- [ x ] Move request/routing failures toward thrown typed app errors for consistency
+- [ x ] Add typed app errors for common request failures (`NotFoundError`, `MethodNotAllowedError`, `UnsupportedMediaTypeError`)
+- [ x ] Keep form validation failures as structured results instead of thrown exceptions
+- [ x ] Finish moving request/routing failures to thrown typed app errors
+- [ x ] Remove response helpers that become unused after the error-model migration
+- [ x ] Remove helper functions that become unused after the error-model migration
 
 ---
 
 ## 11. Config cleanup
-- [ ] Load `dotenv` once in the entrypoint only
-- [ ] Move environment/config loading into a dedicated config module if helpful
-- [ ] Move shared constants into a shared constants/config file
-- [ ] Keep runtime config separate from app logic
+- [ x ] Load `dotenv` once in the entrypoint only
+- [ x ] Move environment/config loading into a dedicated config module if helpful
+- [ x ] Move shared constants into a shared constants/config file
+- [ x ] Keep runtime config separate from app logic
 
 ---
 
 ## 12. Final verification pass
-- [ ] Re-test `GET /`
-- [ ] Re-test `GET /notes`
-- [ ] Re-test `GET /notes/new`
-- [ ] Re-test `GET /notes/:id`
-- [ ] Re-test successful `POST /notes`
-- [ ] Re-test validation failure on `POST /notes`
-- [ ] Re-test wrong content type on `POST /notes`
-- [ ] Re-test oversized body on `POST /notes`
-- [ ] Re-test `POST /notes/:id/delete`
-- [ ] Re-test `POST /notes/:id/delete/confirm`
-- [ ] Re-test unknown routes
-- [ ] Verify security headers are present
-- [ ] Verify no stack traces or DB details reach users
-- [ ] Verify no user-controlled data reaches HTML unescaped
+- [ x ] Re-test `GET /`
+- [ x ] Re-test `GET /notes`
+- [ x ] Re-test `GET /notes/new`
+- [ x ] Re-test `GET /notes/:id`
+- [ x ] Re-test successful `POST /notes`
+- [ x ] Re-test validation failure on `POST /notes`
+- [ x ] Re-test wrong content type on `POST /notes`
+- [ x ] Re-test oversized body on `POST /notes`
+- [ x ] Re-test `POST /notes/:id/delete`
+- [ x ] Re-test `POST /notes/:id/delete/confirm`
+- [ x ] Re-test unknown routes
+- [ x ] Re-test 405 behavior on known routes
+- [ x ] Re-test `HEAD` on safe GET routes
+- [ x ] Verify security headers are present where expected
+- [ x ] Verify DB constraints match app validation rules
+- [ x ] Verify no stack traces or DB details reach users
+- [ x ] Remove any remaining unused imports/helpers
+- [ x ] Do one final codebase sanity pass for Phase 2
 
 ---
 
