@@ -40,3 +40,10 @@ export class MethodNotAllowedError extends AppError {
         this.allowedMethods = allowedMethods;
     }
 }
+
+export class InvalidCsrfTokenError extends AppError {
+	constructor(message = 'Invalid CSRF token') {
+		super(message, 403);
+		this.name = 'InvalidCsrfTokenError';
+	}
+}
