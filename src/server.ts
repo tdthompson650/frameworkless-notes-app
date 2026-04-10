@@ -12,10 +12,12 @@ import {
 	InvalidCsrfTokenError,
 	MethodNotAllowedError,
 	NotFoundError,
+	TooManyRequestsError,
 	UnsupportedMediaTypeError,
 } from './http/errors.js';
 import { sendErrorResponse, sendRedirect } from './http/response.js';
 import { isFormUrlEncoded, parseFormData, readFormBody } from './http/request.js';
+import { checkRateLimit, getClientIp } from './http/rate-limit.js';
 import {
 	getConfirmDeleteNoteIdFromPath,
 	getDeleteNoteIdFromPath,
@@ -32,6 +34,11 @@ import {
 import { logError, logInfo, logWarn } from './utils/logger.js';
 import { handleHome } from './views/home.js';
 import { handleStyles } from './assets/styles.js';
+import {
+	AUTH_RATE_LIMIT_WINDOW_MS,
+	LOGIN_MAX_ATTEMPTS_PER_WINDOW,
+	SIGNUP_MAX_ATTEMPTS_PER_WINDOW,
+} from './config/constants.js';
 import { getPort } from './config/env.js';
 import { handleLoginNew, handleSignupNew } from './auth/auth.views.js';
 import {
@@ -44,7 +51,11 @@ import {
 	deleteSessionByTokenHash,
 	getUserByEmail,
 } from './auth/auth.repo.js';
-import { hashPassword, verifyPassword } from './auth/password.js';
+import {
+	consumePasswordVerificationTime,
+	hashPassword,
+	verifyPassword,
+} from './auth/password.js';
 import {
 	createClearedPreAuthCsrfCookie,
 	createClearedSessionCookie,
@@ -117,6 +128,20 @@ async function requireAuthContext(
 	}
 
 	return auth;
+}
+
+function enforceRateLimit(
+	response: http.ServerResponse,
+	allowed: boolean,
+	retryAfterSeconds: number,
+	message: string
+): void {
+	if (allowed) {
+		return;
+	}
+
+	response.setHeader('Retry-After', String(retryAfterSeconds));
+	throw new TooManyRequestsError(message);
 }
 
 const server = http.createServer(async (request, response) => {
@@ -252,6 +277,21 @@ const server = http.createServer(async (request, response) => {
 
 				const formBody = await readFormBody(request);
 				const formFields = parseFormData(formBody);
+
+				const clientIp = getClientIp(request);
+				const signupRateLimit = checkRateLimit(
+					`signup:${clientIp}`,
+					SIGNUP_MAX_ATTEMPTS_PER_WINDOW,
+					AUTH_RATE_LIMIT_WINDOW_MS
+				);
+
+				enforceRateLimit(
+					response,
+					signupRateLimit.allowed,
+					signupRateLimit.retryAfterSeconds,
+					'Too many signup attempts. Please try again later.'
+				);
+
 				const rawEmail = formFields.email ?? '';
 				const rawPassword = formFields.password ?? '';
 				const rawConfirmPassword = formFields.confirmPassword ?? '';
@@ -330,6 +370,20 @@ const server = http.createServer(async (request, response) => {
 				const rawEmail = formFields.email ?? '';
 				const rawPassword = formFields.password ?? '';
 
+				const clientIp = getClientIp(request);
+				const loginIpRateLimit = checkRateLimit(
+					`login:${clientIp}`,
+					LOGIN_MAX_ATTEMPTS_PER_WINDOW,
+					AUTH_RATE_LIMIT_WINDOW_MS
+				);
+
+				enforceRateLimit(
+					response,
+					loginIpRateLimit.allowed,
+					loginIpRateLimit.retryAfterSeconds,
+					'Too many login attempts. Please try again later.'
+				);
+
 				const preAuthCsrfToken = getPreAuthCsrfTokenFromRequest(request);
 
 				if (!isValidCsrfToken(formFields.csrfToken, preAuthCsrfToken ?? '')) {
@@ -337,6 +391,21 @@ const server = http.createServer(async (request, response) => {
 				}
 
 				const result = validateLoginInput(rawEmail, rawPassword);
+
+				if (result.ok) {
+					const loginIdentityRateLimit = checkRateLimit(
+						`login:${clientIp}:${result.value.email}`,
+						LOGIN_MAX_ATTEMPTS_PER_WINDOW,
+						AUTH_RATE_LIMIT_WINDOW_MS
+					);
+
+					enforceRateLimit(
+						response,
+						loginIdentityRateLimit.allowed,
+						loginIdentityRateLimit.retryAfterSeconds,
+						'Too many login attempts. Please try again later.'
+					);
+				}
 
 				if (!result.ok) {
 					logWarn('Login validation errors', result.errors);
@@ -355,6 +424,8 @@ const server = http.createServer(async (request, response) => {
 				const user = await getUserByEmail(result.value.email);
 
 				if (!user) {
+					await consumePasswordVerificationTime(result.value.password);
+
 					handleLoginNew(
 						response,
 						{

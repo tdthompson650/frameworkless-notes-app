@@ -46,6 +46,7 @@ export async function getAuthContext(
 	const user = await getUserById(session.userId);
 
 	if (!user) {
+		await deleteSessionByTokenHash(session.tokenHash);
 		return null;
 	}
 

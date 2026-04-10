@@ -1,48 +1,27 @@
 import type { IncomingMessage } from 'node:http';
 import { MAX_REQUEST_BODY_SIZE } from '../config/constants.js';
-import { PayloadTooLargeError } from './errors.js';
+import { RequestEntityTooLargeError } from './errors.js';
 
 export async function readFormBody(request: IncomingMessage): Promise<string> {
-    return await new Promise((resolve, reject) => {
-        let body = '';
-        let bodySize = 0;
-        let settled = false;
+    const chunks: Buffer[] = [];
+    let totalSize = 0;
 
-        request.on('data', (chunk: Buffer) => {
-            if (settled) {
-                return;
-            }
+    for await (const chunk of request) {
+        const bufferChunk = Buffer.isBuffer(chunk)
+            ? chunk
+            : Buffer.from(chunk);
 
-            bodySize += chunk.length;
+        totalSize += bufferChunk.length;
 
-            if (bodySize > MAX_REQUEST_BODY_SIZE) {
-                settled = true;
-                reject(new PayloadTooLargeError());
-                request.destroy();
-                return;
-            }
+        if (totalSize > MAX_REQUEST_BODY_SIZE) {
+            request.destroy();
+            throw new RequestEntityTooLargeError();
+        }
 
-            body += chunk.toString();
-        });
+        chunks.push(bufferChunk);
+    }
 
-        request.on('end', () => {
-            if (settled) {
-                return;
-            }
-
-            settled = true;
-            resolve(body);
-        });
-
-        request.on('error', (error) => {
-            if (settled) {
-                return;
-            }
-
-            settled = true;
-            reject(error);
-        });
-    });
+    return Buffer.concat(chunks).toString('utf8');
 }
 
 export function parseFormData(rawBody: string): Record<string, string> {
