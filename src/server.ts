@@ -1,6 +1,7 @@
 import http from 'node:http';
 
 import { db } from './db.js';
+import { isUniqueViolationError } from './db/errors.js';
 import {
 	createNote,
 	deleteNoteByIdForUser,
@@ -24,14 +25,14 @@ import {
 	getNoteIdFromPath,
 } from './notes/note.paths.js';
 import type { NoteId } from './notes/note.types.js';
-import { validateNoteInput } from './notes/note.validation.js';
+import { flattenNoteFieldErrors, validateNoteInput } from './notes/note.validation.js';
 import {
 	handleDeleteNoteConfirm,
 	handleNotesIndex,
 	handleNotesNew,
 	handleNoteShow,
 } from './notes/note.views.js';
-import { logError, logInfo, logWarn } from './utils/logger.js';
+import { logError, logErrorSummary, logInfo, logWarn } from './utils/logger.js';
 import { handleHome } from './views/home.js';
 import { handleStyles } from './assets/styles.js';
 import {
@@ -42,6 +43,9 @@ import {
 import { getPort } from './config/env.js';
 import { handleLoginNew, handleSignupNew } from './auth/auth.views.js';
 import {
+	type SignupFieldErrors,
+	flattenLoginFieldErrors,
+	flattenSignupFieldErrors,
 	validateLoginInput,
 	validateSignupInput,
 } from './auth/auth.validation.js';
@@ -74,6 +78,12 @@ import {
 } from './auth/auth.session.js';
 
 const port = getPort();
+
+const SIGNUP_DUPLICATE_EMAIL_FIELD_ERRORS: SignupFieldErrors = {
+	email: ['An account with that email already exists.'],
+	password: [],
+	confirmPassword: [],
+};
 
 function isMethodNotAllowed(
 	pathname: string,
@@ -309,11 +319,11 @@ const server = http.createServer(async (request, response) => {
 				);
 
 				if (!result.ok) {
-					logWarn('Signup validation errors', result.errors);
+					logWarn('Signup validation errors', flattenSignupFieldErrors(result.fieldErrors));
 					handleSignupNew(
 						response,
 						{
-							errors: result.errors,
+							fieldErrors: result.fieldErrors,
 							email: result.value.email,
 							csrfToken: preAuthCsrfToken ?? '',
 						},
@@ -328,7 +338,7 @@ const server = http.createServer(async (request, response) => {
 					handleSignupNew(
 						response,
 						{
-							errors: ['An account with that email already exists.'],
+							fieldErrors: SIGNUP_DUPLICATE_EMAIL_FIELD_ERRORS,
 							email: result.value.email,
 							csrfToken: preAuthCsrfToken ?? '',
 						},
@@ -338,7 +348,24 @@ const server = http.createServer(async (request, response) => {
 				}
 
 				const passwordHash = await hashPassword(result.value.password);
-				const user = await createUser(result.value.email, passwordHash);
+				let user;
+				try {
+					user = await createUser(result.value.email, passwordHash);
+				} catch (error) {
+					if (isUniqueViolationError(error)) {
+						handleSignupNew(
+							response,
+							{
+								fieldErrors: SIGNUP_DUPLICATE_EMAIL_FIELD_ERRORS,
+								email: result.value.email,
+								csrfToken: preAuthCsrfToken ?? '',
+							},
+							400
+						);
+						return;
+					}
+					throw error;
+				}
 
 				const sessionToken = generateSessionToken();
 				const sessionTokenHash = hashSessionToken(sessionToken);
@@ -408,11 +435,11 @@ const server = http.createServer(async (request, response) => {
 				}
 
 				if (!result.ok) {
-					logWarn('Login validation errors', result.errors);
+					logWarn('Login validation errors', flattenLoginFieldErrors(result.fieldErrors));
 					handleLoginNew(
 						response,
 						{
-							errors: result.errors,
+							fieldErrors: result.fieldErrors,
 							email: result.value.email,
 							csrfToken: preAuthCsrfToken ?? '',
 						},
@@ -429,7 +456,7 @@ const server = http.createServer(async (request, response) => {
 					handleLoginNew(
 						response,
 						{
-							errors: ['Invalid email or password.'],
+							authErrorMessage: 'Invalid email or password.',
 							email: result.value.email,
 							csrfToken: preAuthCsrfToken ?? '',
 						},
@@ -447,7 +474,7 @@ const server = http.createServer(async (request, response) => {
 					handleLoginNew(
 						response,
 						{
-							errors: ['Invalid email or password.'],
+							authErrorMessage: 'Invalid email or password.',
 							email: result.value.email,
 							csrfToken: preAuthCsrfToken ?? '',
 						},
@@ -594,11 +621,11 @@ const server = http.createServer(async (request, response) => {
 				const result = validateNoteInput(rawTitle, rawBody);
 
 				if (!result.ok) {
-					logWarn('Validation errors', result.errors);
+					logWarn('Validation errors', flattenNoteFieldErrors(result.fieldErrors));
 					handleNotesNew(
 						response,
 						{
-							errors: result.errors,
+							fieldErrors: result.fieldErrors,
 							title: result.value.title,
 							body: result.value.body,
 							csrfToken: auth.session.csrfToken,
@@ -691,6 +718,6 @@ server.listen(port, async () => {
 		logInfo('Database connection ok', result.rows[0]);
 		logInfo(`Server running at http://localhost:${port}`);
 	} catch (error) {
-		logError('Database connection failed', error);
+		logErrorSummary('Database connection failed', error);
 	}
 });

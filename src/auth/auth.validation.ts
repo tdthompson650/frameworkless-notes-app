@@ -38,13 +38,40 @@ export type LoginFormValue = {
 	password: string;
 };
 
+export type SignupFieldErrors = {
+	email: string[];
+	password: string[];
+	confirmPassword: string[];
+};
+
+export type LoginFieldErrors = {
+	email: string[];
+	password: string[];
+};
+
+export function emptySignupFieldErrors(): SignupFieldErrors {
+	return { email: [], password: [], confirmPassword: [] };
+}
+
+export function emptyLoginFieldErrors(): LoginFieldErrors {
+	return { email: [], password: [] };
+}
+
+export function flattenSignupFieldErrors(fieldErrors: SignupFieldErrors): string[] {
+	return [...fieldErrors.email, ...fieldErrors.password, ...fieldErrors.confirmPassword];
+}
+
+export function flattenLoginFieldErrors(fieldErrors: LoginFieldErrors): string[] {
+	return [...fieldErrors.email, ...fieldErrors.password];
+}
+
 type SignupValidationResult =
 	| { ok: true; value: SignupInput }
-	| { ok: false; errors: string[]; value: SignupFormValue };
+	| { ok: false; fieldErrors: SignupFieldErrors; value: SignupFormValue };
 
 type LoginValidationResult =
 	| { ok: true; value: LoginInput }
-	| { ok: false; errors: string[]; value: LoginFormValue };
+	| { ok: false; fieldErrors: LoginFieldErrors; value: LoginFormValue };
 
 function normalizeEmail(email: string): string {
 	return email.trim().toLowerCase();
@@ -65,48 +92,48 @@ function getSafeLoginFormValue(email: string): LoginFormValue {
 	};
 }
 
-function validateEmail(email: string, errors: string[]): string {
+function validateEmail(email: string, emailErrors: string[]): string {
 	const normalizedEmail = normalizeEmail(email);
 
 	if (normalizedEmail === '') {
-		errors.push(AUTH_VALIDATION_MESSAGES.emailRequired);
+		emailErrors.push(AUTH_VALIDATION_MESSAGES.emailRequired);
 		return normalizedEmail;
 	}
 
 	if (normalizedEmail.length > MAX_USER_EMAIL_LENGTH) {
-		errors.push(AUTH_VALIDATION_MESSAGES.emailTooLong);
+		emailErrors.push(AUTH_VALIDATION_MESSAGES.emailTooLong);
 	}
 
 	if (!BASIC_EMAIL_PATTERN.test(normalizedEmail)) {
-		errors.push(AUTH_VALIDATION_MESSAGES.emailInvalid);
+		emailErrors.push(AUTH_VALIDATION_MESSAGES.emailInvalid);
 	}
 
 	return normalizedEmail;
 }
 
-function validateSignupPassword(password: string, errors: string[]): void {
+function validateSignupPassword(password: string, passwordErrors: string[]): void {
 	if (password === '') {
-		errors.push(AUTH_VALIDATION_MESSAGES.passwordRequired);
+		passwordErrors.push(AUTH_VALIDATION_MESSAGES.passwordRequired);
 		return;
 	}
 
 	if (password.length < MIN_PASSWORD_LENGTH) {
-		errors.push(AUTH_VALIDATION_MESSAGES.passwordTooShort);
+		passwordErrors.push(AUTH_VALIDATION_MESSAGES.passwordTooShort);
 	}
 
 	if (password.length > MAX_PASSWORD_LENGTH) {
-		errors.push(AUTH_VALIDATION_MESSAGES.passwordTooLong);
+		passwordErrors.push(AUTH_VALIDATION_MESSAGES.passwordTooLong);
 	}
 }
 
-function validateLoginPassword(password: string, errors: string[]): void {
+function validateLoginPassword(password: string, passwordErrors: string[]): void {
 	if (password === '') {
-		errors.push(AUTH_VALIDATION_MESSAGES.passwordRequired);
+		passwordErrors.push(AUTH_VALIDATION_MESSAGES.passwordRequired);
 		return;
 	}
 
 	if (password.length > MAX_PASSWORD_LENGTH) {
-		errors.push(AUTH_VALIDATION_MESSAGES.passwordTooLong);
+		passwordErrors.push(AUTH_VALIDATION_MESSAGES.passwordTooLong);
 	}
 }
 
@@ -115,21 +142,26 @@ export function validateSignupInput(
 	password: string,
 	confirmPassword: string
 ): SignupValidationResult {
-	const errors: string[] = [];
-	const normalizedEmail = validateEmail(email, errors);
+	const fieldErrors = emptySignupFieldErrors();
+	const normalizedEmail = validateEmail(email, fieldErrors.email);
 
-	validateSignupPassword(password, errors);
+	validateSignupPassword(password, fieldErrors.password);
 
 	if (confirmPassword === '') {
-		errors.push(AUTH_VALIDATION_MESSAGES.confirmPasswordRequired);
+		fieldErrors.confirmPassword.push(AUTH_VALIDATION_MESSAGES.confirmPasswordRequired);
 	} else if (password !== confirmPassword) {
-		errors.push(AUTH_VALIDATION_MESSAGES.passwordMismatch);
+		fieldErrors.confirmPassword.push(AUTH_VALIDATION_MESSAGES.passwordMismatch);
 	}
 
-	if (errors.length > 0) {
+	const hasErrors =
+		fieldErrors.email.length > 0 ||
+		fieldErrors.password.length > 0 ||
+		fieldErrors.confirmPassword.length > 0;
+
+	if (hasErrors) {
 		return {
 			ok: false,
-			errors,
+			fieldErrors,
 			value: getSafeSignupFormValue(email),
 		};
 	}
@@ -147,15 +179,15 @@ export function validateLoginInput(
 	email: string,
 	password: string
 ): LoginValidationResult {
-	const errors: string[] = [];
-	const normalizedEmail = validateEmail(email, errors);
+	const fieldErrors = emptyLoginFieldErrors();
+	const normalizedEmail = validateEmail(email, fieldErrors.email);
 
-	validateLoginPassword(password, errors);
+	validateLoginPassword(password, fieldErrors.password);
 
-	if (errors.length > 0) {
+	if (fieldErrors.email.length > 0 || fieldErrors.password.length > 0) {
 		return {
 			ok: false,
-			errors,
+			fieldErrors,
 			value: getSafeLoginFormValue(email),
 		};
 	}

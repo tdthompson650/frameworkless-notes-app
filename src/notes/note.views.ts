@@ -7,6 +7,7 @@ import {
 	notePath,
 } from './note.paths.js';
 import type { Note } from './note.types.js';
+import { emptyNoteFieldErrors, type NoteFieldErrors } from './note.validation.js';
 import { escapeHtml } from '../utils/escape.js';
 import { buildRenderPageOptions, renderPage } from '../views/layout.js';
 
@@ -48,10 +49,71 @@ export function handleNotesIndex(
 	sendHtml(response, html);
 }
 
+function renderNoteFieldErrorBlock(elementId: string, messages: string[]): string {
+	if (messages.length === 0) {
+		return '';
+	}
+
+	const items = messages.map((msg) => `<li>${escapeHtml(msg)}</li>`).join('');
+
+	return `
+        <div id="${elementId}" class="field-error">
+          <ul>${items}</ul>
+        </div>`;
+}
+
+function renderNoteFormErrorSummary(summaryId: string, headingId: string, messages: string[]): string {
+	if (messages.length === 0) {
+		return '';
+	}
+
+	const items = messages.map((msg) => `<li>${escapeHtml(msg)}</li>`).join('');
+
+	return `
+    <div
+      id="${summaryId}"
+      class="form-error-summary"
+      tabindex="-1"
+      aria-labelledby="${headingId}"
+      aria-live="polite"
+    >
+      <h2 id="${headingId}">Please fix the following errors:</h2>
+      <ul>${items}</ul>
+    </div>`;
+}
+
+function flattenNoteMessages(fieldErrors: NoteFieldErrors): string[] {
+	return [...fieldErrors.title, ...fieldErrors.body];
+}
+
+function noteAutofocusAttr(fieldErrors: NoteFieldErrors): { title: string; body: string } {
+	const focus = ' autofocus';
+
+	if (fieldErrors.title.length > 0) {
+		return { title: focus, body: '' };
+	}
+
+	if (fieldErrors.body.length > 0) {
+		return { title: '', body: focus };
+	}
+
+	return { title: '', body: '' };
+}
+
+function describedByAttr(...ids: string[]): string {
+	const unique = [...new Set(ids.filter((id) => id !== ''))];
+
+	if (unique.length === 0) {
+		return '';
+	}
+
+	return ` aria-describedby="${unique.join(' ')}"`;
+}
+
 export function handleNotesNew(
 	response: ServerResponse,
 	options?: {
-		errors?: string[];
+		fieldErrors?: NoteFieldErrors;
 		title?: string;
 		body?: string;
 		csrfToken?: string;
@@ -60,27 +122,26 @@ export function handleNotesNew(
 	currentUserEmail?: string | null,
 	logoutCsrfToken?: string | null
 ) {
-	const errors = options?.errors ?? [];
+	const fieldErrors = options?.fieldErrors ?? emptyNoteFieldErrors();
 	const title = options?.title ?? '';
 	const body = options?.body ?? '';
 	const csrfToken = options?.csrfToken ?? '';
 
-	const errorHtml =
-		errors.length > 0
-			? `
-        <div>
-          <h2>Please fix the following errors:</h2>
-          <ul>
-            ${errors.map((error) => `<li>${escapeHtml(error)}</li>`).join('')}
-          </ul>
-        </div>
-      `
-			: '';
+	const summaryMessages = flattenNoteMessages(fieldErrors);
+	const summaryHtml = renderNoteFormErrorSummary(
+		'note-new-error-summary',
+		'note-new-error-summary-heading',
+		summaryMessages
+	);
+
+	const titleDescribedBy = fieldErrors.title.length > 0 ? 'note-title-error' : '';
+	const bodyDescribedBy = fieldErrors.body.length > 0 ? 'note-body-error' : '';
+	const focus = noteAutofocusAttr(fieldErrors);
 
 	const content = `
     <h1>New note</h1>
 
-    ${errorHtml}
+    ${summaryHtml}
 
     <form method="post" action="/notes">
       <input
@@ -91,17 +152,28 @@ export function handleNotesNew(
 
       <div>
         <label for="title">Title</label>
+        ${renderNoteFieldErrorBlock('note-title-error', fieldErrors.title)}
         <input
           id="title"
           name="title"
           type="text"
           value="${escapeHtml(title)}"
+          ${fieldErrors.title.length > 0 ? 'aria-invalid="true"' : ''}${describedByAttr(titleDescribedBy)}
+          ${focus.title}
         >
       </div>
 
       <div>
         <label for="body">Body</label>
-        <textarea id="body" name="body" rows="8" cols="40">${escapeHtml(body)}</textarea>
+        ${renderNoteFieldErrorBlock('note-body-error', fieldErrors.body)}
+        <textarea
+          id="body"
+          name="body"
+          rows="8"
+          cols="40"
+          ${fieldErrors.body.length > 0 ? 'aria-invalid="true"' : ''}${describedByAttr(bodyDescribedBy)}
+          ${focus.body}
+        >${escapeHtml(body)}</textarea>
       </div>
 
       <div>

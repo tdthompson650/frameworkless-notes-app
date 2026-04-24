@@ -1,3 +1,14 @@
 node_modules
 dist
 .env
+.env.*
+!.env.example
+
+# Local only (not for the public repo)
+pre_launch_checklist.md
+
+# Logs & OS noise
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db

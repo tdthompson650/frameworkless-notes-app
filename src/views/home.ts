@@ -9,13 +9,57 @@ export function handleHome(
 	logoutCsrfToken?: string | null
 ): void {
 	const content = `
-    <h1>Home page</h1>
+    <section>
+      <h1>Frameworkless Notes App</h1>
+      <p>
+        A server-rendered notes application built without a web framework using
+        Node’s <code>http</code> module, TypeScript, and PostgreSQL.
+      </p>
+    </section>
+
+    <section>
+      <h2>Purpose</h2>
+      <p>
+        This project was built as a fundamentals-first portfolio piece focused on
+        understanding how modern web applications work underneath framework
+        abstractions.
+      </p>
+      <p>
+        It emphasizes clear architecture, raw HTTP handling, server rendering,
+        authentication, authorization, and practical web security.
+      </p>
+    </section>
+
+    <section>
+      <h2>What it highlights</h2>
+      <ul>
+        <li>Frameworkless backend and server-rendered HTML</li>
+        <li>Security-focused auth, sessions, CSRF protection, and rate limiting</li>
+        <li>Per-user authorization for notes</li>
+        <li>Responsive layout and accessibility-minded UI decisions</li>
+        <li>Production-minded hardening and deployment preparation</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Tech stack</h2>
+      <ul>
+        <li>Node.js</li>
+        <li>TypeScript</li>
+        <li>PostgreSQL</li>
+        <li><code>pg</code></li>
+        <li><code>argon2</code></li>
+        <li><code>dotenv</code></li>
+        <li>Built-in Node <code>http</code> server</li>
+      </ul>
+    </section>
   `;
 
 	const html = renderPage(
-		'Home page',
+		'Frameworkless Notes App',
 		content,
 		buildRenderPageOptions(currentUserEmail, logoutCsrfToken)
 	);
+
 	sendHtml(response, html);
 }

@@ -1,5 +1,7 @@
 import type { IncomingMessage } from 'node:http';
 
+import { getTrustForwardedFor } from '../config/env.js';
+
 type RateLimitBucket = {
 	count: number;
 	resetAtMs: number;
@@ -12,11 +14,28 @@ type RateLimitResult = {
 
 const buckets = new Map<string, RateLimitBucket>();
 
-export function getClientIp(request: IncomingMessage): string {
-	const forwardedFor = request.headers['x-forwarded-for'];
+function getForwardedForHeaderValue(request: IncomingMessage): string | undefined {
+	const header = request.headers['x-forwarded-for'];
 
-	if (typeof forwardedFor === 'string' && forwardedFor.trim() !== '') {
-		return forwardedFor.split(',')[0]?.trim() ?? 'unknown';
+	if (typeof header === 'string' && header.trim() !== '') {
+		return header;
+	}
+
+	if (Array.isArray(header) && header.length > 0 && typeof header[0] === 'string') {
+		const first = header[0].trim();
+		return first !== '' ? first : undefined;
+	}
+
+	return undefined;
+}
+
+export function getClientIp(request: IncomingMessage): string {
+	if (getTrustForwardedFor()) {
+		const forwardedFor = getForwardedForHeaderValue(request);
+
+		if (forwardedFor !== undefined) {
+			return forwardedFor.split(',')[0]?.trim() ?? 'unknown';
+		}
 	}
 
 	return request.socket.remoteAddress ?? 'unknown';

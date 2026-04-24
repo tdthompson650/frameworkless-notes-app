@@ -29,25 +29,31 @@ function renderNavigation(
 ): string {
 	if (currentUserEmail) {
 		return `
-      <a href="/">Home</a>
-      <a href="/notes">Notes</a>
-      <a href="/notes/new">New note</a>
-      <span>Signed in as ${escapeHtml(currentUserEmail)}</span>
-      <form method="post" action="/logout" style="display: inline">
-        <input
-          type="hidden"
-          name="csrfToken"
-          value="${escapeHtml(logoutCsrfToken ?? '')}"
-        >
-        <button type="submit">Log out</button>
-      </form>
+      <div class="nav-primary">
+        <a href="/">Home</a>
+        <a href="/notes">Notes</a>
+        <a href="/notes/new">New note</a>
+      </div>
+      <div class="nav-user-cluster">
+        <span class="nav-user">Signed in as ${escapeHtml(currentUserEmail)}</span>
+        <form method="post" action="/logout" class="inline-form">
+          <input
+            type="hidden"
+            name="csrfToken"
+            value="${escapeHtml(logoutCsrfToken ?? '')}"
+          >
+          <button type="submit">Log out</button>
+        </form>
+      </div>
     `;
 	}
 
 	return `
-    <a href="/">Home</a>
-    <a href="/signup">Sign up</a>
-    <a href="/login">Log in</a>
+    <div class="nav-primary">
+      <a href="/">Home</a>
+      <a href="/signup">Sign up</a>
+      <a href="/login">Log in</a>
+    </div>
   `;
 }
 
@@ -68,13 +74,15 @@ export function renderPage(
     <meta name="viewport" content="width=device-width, initial-scale=1">
   </head>
   <body>
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+
     <header>
       <nav aria-label="Main navigation">
         ${renderNavigation(options.currentUserEmail, options.logoutCsrfToken)}
       </nav>
     </header>
 
-    <main>
+    <main id="main-content" tabindex="-1">
       ${content}
     </main>
   </body>

@@ -31,3 +31,13 @@ export function getPort(): number {
 
     return port;
 }
+
+/**
+ * When true, `X-Forwarded-For` is used for client IP (e.g. behind Render’s reverse proxy).
+ * Keep false on a server exposed directly to the internet so clients cannot spoof the header.
+ */
+export function getTrustForwardedFor(): boolean {
+    const raw = process.env.TRUST_FORWARDED_FOR?.trim().toLowerCase();
+
+    return raw === 'true' || raw === '1';
+}
