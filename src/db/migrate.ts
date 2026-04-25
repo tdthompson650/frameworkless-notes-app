@@ -33,7 +33,16 @@ async function getMigrationFileNames(): Promise<string[]> {
 	return entries
 		.filter((entry) => entry.isFile() && entry.name.endsWith('.sql'))
 		.map((entry) => entry.name)
-		.sort((left, right) => left.localeCompare(right));
+		.sort((left, right) => {
+			const leftNumber = Number.parseInt(left.split('_')[0] ?? '', 10);
+			const rightNumber = Number.parseInt(right.split('_')[0] ?? '', 10);
+
+			if (Number.isNaN(leftNumber) || Number.isNaN(rightNumber)) {
+				return left.localeCompare(right);
+			}
+
+			return leftNumber - rightNumber;
+		});
 }
 
 async function applyMigration(name: string): Promise<void> {
