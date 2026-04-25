@@ -2,6 +2,8 @@
 
 A frameworkless, server-rendered notes application built with Node’s `http` module, TypeScript, and PostgreSQL.
 
+Repository: [github.com/tdthompson650/frameworkless-notes-app](https://github.com/tdthompson650/frameworkless-notes-app)
+
 This project was built as a fundamentals-first portfolio piece to practice web security, HTTP, server rendering, accessibility-minded UI design, and responsive layout without relying on a web framework.
 
 ## Why this project exists

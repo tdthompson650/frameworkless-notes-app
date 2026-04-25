@@ -7,6 +7,11 @@ dist
 # Local only (not for the public repo)
 pre_launch_checklist.md
 
+# Cursor: ignore other local data under .cursor/; .cursor/rules/ stays shareable
+.cursor/*
+!.cursor/rules/
+!.cursor/rules/**
+
 # Logs & OS noise
 *.log
 npm-debug.log*
