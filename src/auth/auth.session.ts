@@ -10,6 +10,10 @@ export type AuthContext = {
 	user: User;
 };
 
+/**
+ * Resolves the session from the cookie and DB. Expired rows are deleted.
+ * Security: only a hash of the session token is looked up; see `session.ts`.
+ */
 export async function getCurrentSession(
 	request: IncomingMessage
 ): Promise<Session | null> {

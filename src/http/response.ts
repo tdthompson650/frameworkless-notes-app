@@ -3,6 +3,10 @@ import { applyCommonSecurityHeaders, applyDocumentSecurityHeaders } from './head
 import { AppError, MethodNotAllowedError } from './errors.js';
 import { renderErrorDocument } from '../views/error-page.js';
 
+/**
+ * HTML/CSS/redirect helpers. HTML uses full document CSP (stricter than CSS-only responses).
+ */
+
 function shortStatusTitle(statusCode: number): string {
 	switch (statusCode) {
 		case 400:
@@ -55,6 +59,9 @@ export function sendErrorResponse(response: ServerResponse, error: unknown): voi
 	sendServerError(response);
 }
 
+/**
+ * Sends an HTML document. HEAD requests get headers but no body (HTTP semantics).
+ */
 export function sendHtml(
 	response: ServerResponse,
 	html: string,
@@ -81,6 +88,9 @@ export function sendCss(
 	response.end(isHeadRequest ? undefined : css);
 }
 
+/**
+ * Post/Redirect/Get: 303 clears the POST from history and avoids accidental resubmission.
+ */
 export function sendRedirect(
 	response: ServerResponse,
 	location: string,

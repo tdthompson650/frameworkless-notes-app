@@ -114,6 +114,10 @@ export async function deleteSessionByTokenHash(
 	return result.rows[0] ?? null;
 }
 
+/**
+ * Removes all expired sessions. Not called on the request path today; intended for a
+ * periodic job so the `sessions` table does not grow forever in long-running deploys.
+ */
 export async function deleteExpiredSessions(): Promise<number> {
 	const result = await db.query(
 		`

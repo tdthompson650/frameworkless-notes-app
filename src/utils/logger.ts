@@ -1,6 +1,6 @@
 /**
- * Server logging. Do not pass passwords, session tokens, raw cookies, full connection strings,
- * or raw request bodies—especially on `/login`, `/signup`, or `/logout`.
+ * Server logging (stderr). Do not pass passwords, session tokens, raw cookies, full
+ * connection strings, or raw request bodies (especially for `/login`, `/signup`, `/logout`).
  */
 
 export function logInfo(message: string, data?: unknown): void {

@@ -2,6 +2,11 @@ import type { IncomingMessage } from 'node:http';
 
 import { SESSION_COOKIE_NAME } from './auth.constants.js';
 
+/**
+ * Short-lived cookie holding the CSRF secret for signup/login before a session exists.
+ * Security: HttpOnly (not readable by script), SameSite=Lax (default cross-site cookie rules),
+ * Secure in production. Paired with hidden form fields on auth pages.
+ */
 const PRE_AUTH_CSRF_COOKIE_NAME = 'pre_auth_csrf';
 
 type CookieMap = Record<string, string>;
@@ -53,6 +58,11 @@ export function getPreAuthCsrfTokenFromRequest(
 	return cookies[PRE_AUTH_CSRF_COOKIE_NAME] ?? null;
 }
 
+/**
+ * Session cookie: stores the opaque session token (raw token never stored in DB; see session hash).
+ * Security: HttpOnly, SameSite=Lax, optional Secure. Not `SameSite=Strict` to allow
+ * normal top-level navigations from external referrers where needed.
+ */
 export function createSessionCookie(
 	token: string,
 	expiresAt: Date,

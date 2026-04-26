@@ -1,8 +1,8 @@
 {
   "name": "frameworkless-notes-app",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Frameworkless server-rendered notes app (Node, TypeScript, PostgreSQL).",
+  "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",

@@ -1,3 +1,8 @@
+/**
+ * Note list/detail/delete views. User-generated titles and bodies go through `escapeHtml`;
+ * CSRF tokens are echoed from server state into hidden fields.
+ */
+
 import type { ServerResponse } from 'node:http';
 
 import { sendHtml } from '../http/response.js';

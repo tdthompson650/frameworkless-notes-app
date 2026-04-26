@@ -57,9 +57,12 @@ function renderNavigation(
   `;
 }
 
-// `title` is escaped here.
-// `content` must be trusted HTML that was built safely by the caller.
-// Escape any user-controlled values before interpolating them into `content`.
+/**
+ * Full-page shell. `title` is escaped; `content` must be built by views that already
+ * escaped any user/DB data (XSS). Security: `logoutCsrfToken` must match the session for POST /logout.
+ *
+ * Accessibility: skip link moves focus to `#main-content`; `main` is focusable for skip targets (WCAG 2.2).
+ */
 export function renderPage(
 	title: string,
 	content: string,

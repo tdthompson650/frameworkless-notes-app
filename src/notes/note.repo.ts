@@ -1,15 +1,14 @@
 import { db } from '../db.js';
 import type { UserId } from '../auth/auth.types.js';
-import type { CreateNoteInput, Note, NoteId, NoteRow } from './note.types.js';
+import {
+	mapNoteRow,
+	type CreateNoteInput,
+	type Note,
+	type NoteId,
+	type NoteRow,
+} from './note.types.js';
 
-function mapNoteRow(row: NoteRow): Note {
-	return {
-		id: row.id,
-		title: row.title,
-		body: row.body,
-		createdAt: row.created_at,
-	};
-}
+/** Note persistence: parameterized SQL only (no string-concatenated queries). */
 
 export async function getNotesByUserId(userId: UserId): Promise<Note[]> {
 	const result = await db.query<NoteRow>(

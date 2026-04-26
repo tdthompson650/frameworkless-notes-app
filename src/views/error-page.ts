@@ -6,6 +6,9 @@ export type ErrorDocumentOptions = {
 	message: string;
 };
 
+/**
+ * Standalone error HTML (minimal chrome). All interpolated strings are escaped (XSS).
+ */
 export function renderErrorDocument(options: ErrorDocumentOptions): string {
 	const { title, heading, message } = options;
 

@@ -1,3 +1,8 @@
+/**
+ * Sign-up and sign-in pages: labeled fields, `escapeHtml` on echoed values, CSRF hidden inputs.
+ * Accessibility: `authErrorMessage` is tied to both fields (generic failure).
+ */
+
 import type { ServerResponse } from 'node:http';
 
 import { sendHtml } from '../http/response.js';

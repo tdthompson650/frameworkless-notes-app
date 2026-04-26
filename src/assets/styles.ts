@@ -1,6 +1,11 @@
 import type { ServerResponse } from 'node:http';
 import { sendCss } from '../http/response.js';
 
+/**
+ * All styles are app-authored (no user CSS). Served as one static sheet.
+ * Accessibility: visible `:focus-visible` ring, skip-link reveal on focus, responsive nav;
+ * `min-height` on nav controls supports touch target sizing.
+ */
 const APP_CSS = `
 	* {
 		box-sizing: border-box;

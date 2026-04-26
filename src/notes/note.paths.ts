@@ -1,5 +1,7 @@
 import type { NoteId } from './note.types.js';
 
+/** URL patterns: `/notes/:id`, delete flow `/notes/:id/delete` and `.../confirm`. */
+
 export function notePath(id: NoteId): string {
     return `/notes/${encodeURIComponent(id)}`;
 }

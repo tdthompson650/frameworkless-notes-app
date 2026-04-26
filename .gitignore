@@ -6,6 +6,7 @@ dist
 
 # Local only (not for the public repo)
 pre_launch_checklist.md
+code-review-order.md
 
 # Cursor IDE (local only — not published to the repo)
 .cursor/

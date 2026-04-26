@@ -1,3 +1,7 @@
+/**
+ * Public landing copy and GitHub link. Static strings only (no user data to escape here).
+ */
+
 import type { ServerResponse } from 'node:http';
 
 import { GITHUB_REPOSITORY_URL } from '../config/constants.js';

@@ -2,6 +2,12 @@ import type { IncomingMessage } from 'node:http';
 
 import { getTrustForwardedFor } from '../config/env.js';
 
+/**
+ * In-memory fixed-window rate limiting (per-process).
+ * Security: slows abuse of login/signup and reduces credential-stuffing throughput.
+ * Ops: not shared across multiple server instances; replace with Redis or edge limits for scale.
+ */
+
 type RateLimitBucket = {
 	count: number;
 	resetAtMs: number;
@@ -29,6 +35,11 @@ function getForwardedForHeaderValue(request: IncomingMessage): string | undefine
 	return undefined;
 }
 
+/**
+ * Client IP for rate-limit keys.
+ * Security: `TRUST_FORWARDED_FOR` must stay false when the app is exposed without a
+ * trusted reverse proxy, or clients can spoof `X-Forwarded-For` and bypass limits.
+ */
 export function getClientIp(request: IncomingMessage): string {
 	if (getTrustForwardedFor()) {
 		const forwardedFor = getForwardedForHeaderValue(request);

@@ -1,6 +1,8 @@
 import type { CreateNoteInput } from './note.types.js';
 import { MAX_NOTE_TITLE_LENGTH, MAX_NOTE_BODY_LENGTH } from '../config/constants.js';
 
+/** Server-side limits bound field size (abuse and DB column expectations). */
+
 const NOTE_VALIDATION_MESSAGES = {
 	titleRequired: 'Title is required',
 	titleTooLong: `Title must be ${MAX_NOTE_TITLE_LENGTH} characters or fewer.`,

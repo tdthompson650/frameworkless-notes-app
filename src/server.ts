@@ -77,8 +77,23 @@ import {
 	type AuthContext,
 } from './auth/auth.session.js';
 
+/**
+ * Main HTTP server: route matching, request parsing, auth, rate limits, and note CRUD.
+ *
+ * Security (cross-cutting): production cookies use `Secure`; POST bodies are size-limited;
+ * state-changing forms require CSRF (pre-auth cookie + form for login/signup; session-bound
+ * token for everything after). GET routes do not change server state.
+ *
+ * See also: `http/headers.ts` (CSP, framing), `auth/csrf.ts`, `http/rate-limit.ts`.
+ */
+
 const port = getPort();
 
+/**
+ * Reused validation errors for duplicate email so responses match the `UNIQUE` race path
+ * (same user-facing message). Security: consistent messaging also avoids email enumeration
+ * via different error text.
+ */
 const SIGNUP_DUPLICATE_EMAIL_FIELD_ERRORS: SignupFieldErrors = {
 	email: ['An account with that email already exists.'],
 	password: [],
@@ -102,10 +117,15 @@ function isDynamicMethodNotAllowed(
 	return matchedId !== null && !allowedMethods.includes(method);
 }
 
+/** Security: `Secure` cookies require HTTPS (set in production). */
 function shouldUseSecureCookies(): boolean {
 	return process.env.NODE_ENV === 'production';
 }
 
+/**
+ * Security: first-party signup/login forms need a CSRF secret before a session row exists;
+ * this stores it in a short-lived `pre_auth_csrf` cookie and mirrors it in hidden fields.
+ */
 function getOrCreatePreAuthCsrfToken(
 	request: http.IncomingMessage,
 	response: http.ServerResponse
@@ -140,6 +160,7 @@ async function requireAuthContext(
 	return auth;
 }
 
+/** Security: throws 429 with `Retry-After` when the client exceeded the in-memory cap. */
 function enforceRateLimit(
 	response: http.ServerResponse,
 	allowed: boolean,
@@ -159,6 +180,7 @@ const server = http.createServer(async (request, response) => {
 		const method = request.method ?? 'GET';
 		const effectiveMethod = method === 'HEAD' ? 'GET' : method;
 		const requestUrl = request.url ?? '/';
+		// Base URL is only for parsing path/query; host comes from the live request in production.
 		const parsedUrl = new URL(
 			requestUrl,
 			`http://${request.headers.host ?? 'localhost'}`
@@ -451,6 +473,7 @@ const server = http.createServer(async (request, response) => {
 				const user = await getUserByEmail(result.value.email);
 
 				if (!user) {
+					// Security: run Argon2 work even if the user is missing to reduce timing leaks.
 					await consumePasswordVerificationTime(result.value.password);
 
 					handleLoginNew(
@@ -645,6 +668,7 @@ const server = http.createServer(async (request, response) => {
 			}
 		}
 
+		// Explicit method-to-route allowlist: anything not handled above is 404 or 405.
 		if (isMethodNotAllowed(pathname, effectiveMethod, '/styles.css', ['GET'])) {
 			throw new MethodNotAllowedError(['GET']);
 		}
@@ -703,6 +727,7 @@ const server = http.createServer(async (request, response) => {
 			logError('Request handling error', error);
 		}
 
+		// If a handler already started the response, we cannot send JSON/HTML error body.
 		if (!response.headersSent) {
 			sendErrorResponse(response, error);
 			return;

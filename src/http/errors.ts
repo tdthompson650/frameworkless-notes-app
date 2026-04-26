@@ -1,3 +1,4 @@
+/** Base type for HTTP errors mapped to responses; `exposeMessage` controls user-visible text. */
 export class AppError extends Error {
 	readonly statusCode: number;
 	readonly exposeMessage: boolean;
@@ -41,6 +42,9 @@ export class MethodNotAllowedError extends AppError {
 	}
 }
 
+/**
+ * Security: form token missing or did not match server state (CSRF failure).
+ */
 export class InvalidCsrfTokenError extends AppError {
 	constructor(message = 'Invalid CSRF token') {
 		super(message, 403);
@@ -48,6 +52,7 @@ export class InvalidCsrfTokenError extends AppError {
 	}
 }
 
+/** Security: rate limit exceeded; client may read `Retry-After` from the response. */
 export class TooManyRequestsError extends AppError {
 	constructor(message: string = 'Too Many Requests') {
 		super(message, 429, true);

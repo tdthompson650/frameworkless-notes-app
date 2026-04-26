@@ -1,4 +1,4 @@
-/** Public source repo URL (e.g. home page link). */
+/** Shown on the public home page (not a secret). */
 export const GITHUB_REPOSITORY_URL =
 	'https://github.com/tdthompson650/frameworkless-notes-app';
 

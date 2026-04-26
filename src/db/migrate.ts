@@ -1,3 +1,7 @@
+/**
+ * Applies SQL files from `src/migrations` in numeric filename order; records names in `schema_migrations`.
+ */
+
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -34,6 +38,7 @@ async function getMigrationFileNames(): Promise<string[]> {
 		.filter((entry) => entry.isFile() && entry.name.endsWith('.sql'))
 		.map((entry) => entry.name)
 		.sort((left, right) => {
+			// Numeric prefix (e.g. 0001 … 0005), not lexicographic: "00005" must run after "0004".
 			const leftNumber = Number.parseInt(left.split('_')[0] ?? '', 10);
 			const rightNumber = Number.parseInt(right.split('_')[0] ?? '', 10);
 
