@@ -18,7 +18,11 @@ export function handleHome(
         Node’s <code>http</code> module, TypeScript, and PostgreSQL.
       </p>
       <p>
-        <a href="${escapeHtml(GITHUB_REPOSITORY_URL)}">Source on GitHub</a>
+        <a
+          href="${escapeHtml(GITHUB_REPOSITORY_URL)}"
+          target="_blank"
+          rel="noopener noreferrer"
+        >Source on GitHub</a>
       </p>
     </section>
 
