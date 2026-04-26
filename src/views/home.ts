@@ -1,6 +1,8 @@
 import type { ServerResponse } from 'node:http';
 
+import { GITHUB_REPOSITORY_URL } from '../config/constants.js';
 import { sendHtml } from '../http/response.js';
+import { escapeHtml } from '../utils/escape.js';
 import { buildRenderPageOptions, renderPage } from './layout.js';
 
 export function handleHome(
@@ -14,6 +16,9 @@ export function handleHome(
       <p>
         A server-rendered notes application built without a web framework using
         Node’s <code>http</code> module, TypeScript, and PostgreSQL.
+      </p>
+      <p>
+        <a href="${escapeHtml(GITHUB_REPOSITORY_URL)}">Source on GitHub</a>
       </p>
     </section>
 

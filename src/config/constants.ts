@@ -1,3 +1,7 @@
+/** Public source repo URL (e.g. home page link). */
+export const GITHUB_REPOSITORY_URL =
+	'https://github.com/tdthompson650/frameworkless-notes-app';
+
 export const MAX_REQUEST_BODY_SIZE = 10_000;
 
 export const MAX_NOTE_TITLE_LENGTH = 200;
