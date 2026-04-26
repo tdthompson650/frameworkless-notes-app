@@ -7,10 +7,8 @@ dist
 # Local only (not for the public repo)
 pre_launch_checklist.md
 
-# Cursor: ignore other local data under .cursor/; .cursor/rules/ stays shareable
-.cursor/*
-!.cursor/rules/
-!.cursor/rules/**
+# Cursor IDE (local only — not published to the repo)
+.cursor/
 
 # Logs & OS noise
 *.log
