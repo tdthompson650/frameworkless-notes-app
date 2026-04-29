@@ -19,6 +19,7 @@ export function emptyNoteFieldErrors(): NoteFieldErrors {
 	return { title: [], body: [] };
 }
 
+
 export function flattenNoteFieldErrors(fieldErrors: NoteFieldErrors): string[] {
 	return [...fieldErrors.title, ...fieldErrors.body];
 }

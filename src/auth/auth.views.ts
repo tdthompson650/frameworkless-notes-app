@@ -25,6 +25,10 @@ type LoginViewOptions = {
 	csrfToken?: string;
 };
 
+/**
+ * Inline error list beside a single field. `elementId` is referenced by `aria-describedby` on the matching
+ * input when that field fails validation (`describedByAttr`). Empty when there are no messages for this field.
+ */
 function renderFieldErrorBlock(elementId: string, messages: string[]): string {
 	if (messages.length === 0) {
 		return '';
@@ -66,6 +70,11 @@ function flattenLoginMessages(fieldErrors: LoginFieldErrors): string[] {
 	return [...fieldErrors.email, ...fieldErrors.password];
 }
 
+/**
+ * After failed signup validation: which controls get the `autofocus` attribute (passed through to each
+ * `<input>` as appended markup). Prefers email, then password, then confirm-password so focus lands on the
+ * first field with errors. All empty strings when nothing failed (no forced focus).
+ */
 function signupAutofocusFlags(fieldErrors: SignupFieldErrors): {
 	email: string;
 	password: string;
@@ -109,6 +118,11 @@ function loginAutofocusFlags(
 	return { email: '', password: '' };
 }
 
+/**
+ * Builds an ` aria-describedby="..."` fragment linking a control to one or more element `id`s (e.g. inline
+ * field-error divs). Filters out empty IDs and dedupes so assistive tech can announce the matching errors.
+ * Returns '' when none apply so templates can concatenate without emitting a bogus attribute.
+ */
 function describedByAttr(...ids: string[]): string {
 	const unique = [...new Set(ids.filter((id) => id !== ''))];
 

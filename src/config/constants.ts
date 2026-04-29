@@ -11,6 +11,6 @@ export const MAX_USER_EMAIL_LENGTH = 320;
 export const MIN_PASSWORD_LENGTH = 15;
 export const MAX_PASSWORD_LENGTH = 128;
 
-export const AUTH_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
+export const AUTH_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes (900 s)
 export const LOGIN_MAX_ATTEMPTS_PER_WINDOW = 10;
 export const SIGNUP_MAX_ATTEMPTS_PER_WINDOW = 5;

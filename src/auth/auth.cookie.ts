@@ -11,6 +11,12 @@ const PRE_AUTH_CSRF_COOKIE_NAME = 'pre_auth_csrf';
 
 type CookieMap = Record<string, string>;
 
+/**
+ * Parses the HTTP `Cookie` header into a plain name→value map.
+ * The header is a `; `-separated list of `name=value` fragments (RFC 6265-style); we split on `;`,
+ * take the first `=` per fragment as the separator (so values may contain further `=`),
+ * skip empty fragments or names-without-values, and URL-decode each value (`decodeURIComponent`).
+ */
 export function parseCookieHeader(cookieHeader: string | undefined): CookieMap {
 	if (!cookieHeader) {
 		return {};

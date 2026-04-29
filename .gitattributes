@@ -1,0 +1,14 @@
+# Match .editorconfig: UTF-8, LF endings for text so commits are consistent across Windows/macOS/Linux.
+* text=auto
+
+*.ts   text eol=lf
+*.tsx  text eol=lf
+*.js   text eol=lf
+*.mjs  text eol=lf
+*.cjs  text eol=lf
+*.json text eol=lf
+*.md   text eol=lf
+*.mdc  text eol=lf
+*.css  text eol=lf
+*.html text eol=lf
+*.sql  text eol=lf

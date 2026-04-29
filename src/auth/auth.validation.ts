@@ -57,10 +57,12 @@ export function emptyLoginFieldErrors(): LoginFieldErrors {
 	return { email: [], password: [] };
 }
 
+/** Merges signup field error lists into one array (e.g. for structured logging on failed validation). Messages are static copy only, not user passwords. */
 export function flattenSignupFieldErrors(fieldErrors: SignupFieldErrors): string[] {
 	return [...fieldErrors.email, ...fieldErrors.password, ...fieldErrors.confirmPassword];
 }
 
+/** Merges login field error lists into one array (e.g. for structured logging on failed validation). Messages are static copy only, not user passwords. */
 export function flattenLoginFieldErrors(fieldErrors: LoginFieldErrors): string[] {
 	return [...fieldErrors.email, ...fieldErrors.password];
 }
